@@ -13,7 +13,7 @@ import keras.backend
 from keras.optimizers import Adam
 from keras.utils import plot_model
 from keras.callbacks import TensorBoard,EarlyStopping
-from Datasets import Dataset_Multi, Dataset_Single
+from Datasets import Dataset_Multi, Dataset_Single, DatasetTruePredict
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -38,20 +38,32 @@ class Model_Multi(Model):
     
     def __init__(self):
         Model.__init__(self)
- 
+
     def data_init(self):
-        self.dataset = Dataset_Multi()
+        import pdb; pdb.set_trace()
+
+        self.dataset = Dataset_Multi(True)
+        self.dataset_predict = DatasetTruePredict(False)
+
         self.data = self.dataset.frame_data
+        self.data_predict = self.dataset_predict.frame_data
+
         self.X =  self.data.iloc[:,1]
         self.y = self.data.iloc[:,2:]
+
+        self.ids_val_predict =  self.data_predict.iloc[:,1]
+        self.y_val_predict = self.data_predict.iloc[:,2:]
         
-        self.ids_train, self.ids_val, self.y_train, self.y_val = train_test_split(self.X, self.y, test_size=0.25, random_state=1)        
+        # xtrain          xtest            ytrain      ytest
+        self.ids_train, self.ids_val, self.y_train, self.y_val = train_test_split(self.X, self.y, test_size=0.25, random_state=1)
+        #self.ids_train = self.X
+        #self.y_train = self.y
+
         self.y_train_vect = [self.y_train["cadran_1"], self.y_train["cadran_2"], self.y_train["cadran_3"], self.y_train["cadran_4"]]
         self.y_val_vect =  [self.y_val["cadran_1"], self.y_val["cadran_2"], self.y_val["cadran_3"], self.y_val["cadran_4"]]
-        
         self.X_train = self.dataset.convert_to_arrays(self.ids_train)
         self.X_val = self.dataset.convert_to_arrays(self.ids_val)
-              
+
     def model_init(self):
 
         model_input = Input((100,246,1))
@@ -124,24 +136,29 @@ class Model_Multi(Model):
         
 
     def predict(self):
-        self.y_pred = self.model.predict(self.X_val)
+        #self.y_pred = self.model.predict(self.X_val)
+        self.X_val_true = self.dataset.convert_to_arrays(self.ids_val_predict)
+
+        self.y_true_pred = self.model.predict(self.X_val_true)
+
         correct_preds = 0
         
-        for i in range(self.X_val.shape[0]):
-            pred_list_i = [np.argmax(pred[i]) for pred in self.y_pred]
-            val_list_i  = self.y_val.values[i].astype('int')
+        for i in range(self.X_val_true.shape[0]):
+            pred_list_i = [np.argmax(pred[i]) for pred in self.y_true_pred]
+            val_list_i  = self.y_val_predict.values[i].astype('int')
             if np.array_equal(val_list_i, pred_list_i):
                 correct_preds = correct_preds + 1
-            print('exact accuracy', correct_preds / self.X_val.shape[0])
+            print('exact accuracy', correct_preds / self.X_val_true.shape[0])
             
         mse = 0 
         diff = []
-        for i in range(self.X_val.shape[0]):
-                pred_list_i = [np.argmax(pred[i]) for pred in self.y_pred]
-                pred_number = 1000* pred_list_i[0] + 100* pred_list_i[1] + 10 * pred_list_i[2] + 1* pred_list_i[3]
-                val_list_i  = self.y_val.values[i].astype('int')
-                val_number = 1000* val_list_i[0] + 100*  val_list_i[1] + 10 *  val_list_i[2] + 1*  val_list_i[3]
-                diff.append(val_number - pred_number)
+        import pdb; pdb.set_trace()
+        for i in range(self.X_val_true.shape[0]):
+            pred_list_i = [np.argmax(pred[i]) for pred in self.y_true_pred]
+            pred_number = 1000* pred_list_i[0] + 100* pred_list_i[1] + 10 * pred_list_i[2] + 1* pred_list_i[3]
+            val_list_i  = self.y_val_predict.values[i].astype('int')
+            val_number = 1000* val_list_i[0] + 100*  val_list_i[1] + 10 *  val_list_i[2] + 1*  val_list_i[3]
+            diff.append(val_number - pred_number)
         print('difference label vs. prediction', diff)
 
     
@@ -159,7 +176,7 @@ class Model_Single(Model):
             Model.__init__(self)
 
     def data_init(self):
-        self.dataset = Dataset_Single()
+        self.dataset = Dataset_Single(True)
 
         self.data = self.dataset.digits_data         
         self.X =  self.data.iloc[:,0]

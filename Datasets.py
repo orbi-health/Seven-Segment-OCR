@@ -6,12 +6,16 @@ from PIL import Image
 
 class Dataset:
     
-    def __init__(self):
-            self.data = self.full_data()
+    def __init__(self, is_train=True):
+        self.data = self.full_data()
+        self.is_train = is_train
                         
     def full_data(self):
         suffix = ".csv"
-        csv_directory = 'Datasets/'
+        if self.is_train:
+            csv_directory = 'Datasets/'
+        else:
+            csv_directory = 'Datasets_Predict/'
         csv_files = [i for i in os.listdir(csv_directory) if i.endswith( suffix )]
         full_data = []
         for i in range(len(csv_files)):
@@ -21,11 +25,13 @@ class Dataset:
         full_data = pd.concat(full_data, axis=0)
         full_data = full_data.replace("X", 10)
         return full_data
-        
+
+                        
 class Dataset_Multi(Dataset):
     
-    def __init__(self):
-        Dataset.__init__(self)
+    def __init__(self, is_train):
+        self.is_train = is_train
+        Dataset.__init__(self, is_train)
         self.frame_directory = 'Datasets_frames/'
         self.frame_data = self.data[self.data["image"].isin(os.listdir(self.frame_directory))]
         
@@ -40,14 +46,20 @@ class Dataset_Multi(Dataset):
         X = np.asarray(X)
         return X
         
+class DatasetTruePredict(Dataset_Multi):
+    def __init__(self, is_train):
+        self.is_train = is_train
+        Dataset.__init__(self, is_train)
+        self.frame_directory = 'Datasets_frames/'
+        self.frame_data = self.data[self.data["image"].isin(os.listdir(self.frame_directory))]
         
 class Dataset_Single(Dataset):
     
-    def __init__(self):
+    def __init__(self, is_train):
+        self.is_train = is_train
         Dataset.__init__(self)
         self.digits_directory = 'Datasets_digits/'
         self.digits_data = self.digits_data()
-
     
     def digits_data(self):
         ids = []

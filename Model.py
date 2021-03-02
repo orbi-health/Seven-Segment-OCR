@@ -40,7 +40,6 @@ class Model_Multi(Model):
         Model.__init__(self)
 
     def data_init(self):
-        import pdb; pdb.set_trace()
 
         self.dataset = Dataset_Multi(True)
         self.dataset_predict = DatasetTruePredict(False)
@@ -59,14 +58,14 @@ class Model_Multi(Model):
         #self.ids_train = self.X
         #self.y_train = self.y
 
-        self.y_train_vect = [self.y_train["cadran_1"], self.y_train["cadran_2"], self.y_train["cadran_3"], self.y_train["cadran_4"]]
-        self.y_val_vect =  [self.y_val["cadran_1"], self.y_val["cadran_2"], self.y_val["cadran_3"], self.y_val["cadran_4"]]
+        self.y_train_vect = [self.y_train["cadran_1"], self.y_train["cadran_2"], self.y_train["cadran_3"]]
+        self.y_val_vect =  [self.y_val["cadran_1"], self.y_val["cadran_2"], self.y_val["cadran_3"]]
         self.X_train = self.dataset.convert_to_arrays(self.ids_train)
         self.X_val = self.dataset.convert_to_arrays(self.ids_val)
 
     def model_init(self):
 
-        model_input = Input((100,246,1))
+        model_input = Input((100,185,1))
 
         x = Conv2D(32, (3, 3), padding='same', name='conv2d_hidden_1', kernel_regularizer=regularizers.l2(0.01))(model_input)
         x = BatchNormalization()(x)
@@ -93,14 +92,13 @@ class Model_Multi(Model):
         digit1 = (Dense(output_dim =11,activation = 'softmax', name='digit_1'))(x)
         digit2 = (Dense(output_dim =11,activation = 'softmax', name='digit_2'))(x)
         digit3 = (Dense(output_dim =11,activation = 'softmax', name='digit_3'))(x)
-        digit4 = (Dense(output_dim =11,activation = 'softmax', name='digit_4'))(x)
 
-        outputs = [digit1, digit2, digit3, digit4]
+        outputs = [digit1, digit2, digit3]
 
         self.model = keras.models.Model(input = model_input , output = outputs)
         self.model._make_predict_function()
         
-    def train(self, lr = 1e-3, epochs=50):
+    def train(self, lr = 1e-3, epochs=100):
         optimizer = Adam(lr=lr, decay=lr/10)
         self.model.compile(loss="sparse_categorical_crossentropy", optimizer= optimizer, metrics = ['accuracy'])
         keras.backend.get_session().run(tf.initialize_all_variables())
@@ -109,7 +107,7 @@ class Model_Multi(Model):
         
     def plot_loss(self):
         
-        for i in range(1,5):
+        for i in range(1,4):
             plt.figure(figsize=[8,6])
             plt.plot(self.history.history['digit_%i_loss' %i],'r',linewidth=0.5)
             plt.plot(self.history.history['val_digit_%i_loss' %i],'b',linewidth=0.5)
@@ -124,7 +122,7 @@ class Model_Multi(Model):
 
     def plot_acc(self):
         
-        for i in range(1,5):
+        for i in range(1,4):
             plt.figure(figsize=[8,6])
             plt.plot(self.history.history['digit_%i_acc' %i],'r',linewidth=0.5)
             plt.plot(self.history.history['val_digit_%i_acc' %i],'b',linewidth=0.5)
@@ -136,28 +134,27 @@ class Model_Multi(Model):
         
 
     def predict(self):
-        #self.y_pred = self.model.predict(self.X_val)
-        self.X_val_true = self.dataset.convert_to_arrays(self.ids_val_predict)
+        self.y_true_pred = self.model.predict(self.X_val)
+        #self.X_val_true = self.dataset.convert_to_arrays(self.ids_val_predict)
 
-        self.y_true_pred = self.model.predict(self.X_val_true)
+        #self.y_true_pred = self.model.predict(self.X_val_true)
 
+        self.X_val_true = self.X_val
         correct_preds = 0
-        
         for i in range(self.X_val_true.shape[0]):
             pred_list_i = [np.argmax(pred[i]) for pred in self.y_true_pred]
-            val_list_i  = self.y_val_predict.values[i].astype('int')
+            val_list_i  = self.y_val.values[i].astype('int')
             if np.array_equal(val_list_i, pred_list_i):
                 correct_preds = correct_preds + 1
             print('exact accuracy', correct_preds / self.X_val_true.shape[0])
             
         mse = 0 
         diff = []
-        import pdb; pdb.set_trace()
         for i in range(self.X_val_true.shape[0]):
             pred_list_i = [np.argmax(pred[i]) for pred in self.y_true_pred]
-            pred_number = 1000* pred_list_i[0] + 100* pred_list_i[1] + 10 * pred_list_i[2] + 1* pred_list_i[3]
-            val_list_i  = self.y_val_predict.values[i].astype('int')
-            val_number = 1000* val_list_i[0] + 100*  val_list_i[1] + 10 *  val_list_i[2] + 1*  val_list_i[3]
+            pred_number = 100* pred_list_i[0] + 10* pred_list_i[1] + 1 * pred_list_i[2]
+            val_list_i  = self.y_val.values[i].astype('int')
+            val_number = 100* val_list_i[0] + 10*  val_list_i[1] + 1 *  val_list_i[2]
             diff.append(val_number - pred_number)
         print('difference label vs. prediction', diff)
 

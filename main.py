@@ -12,5 +12,4 @@ if __name__ == "__main__":
 
     model_1 = Model_Multi()
     model_1.train_predict()
-    import pdb; pdb.set_trace()
 
